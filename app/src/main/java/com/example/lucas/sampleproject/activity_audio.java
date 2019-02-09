@@ -50,7 +50,7 @@ import static android.app.Notification.EXTRA_NOTIFICATION_ID;
 
 public class activity_audio extends AppCompatActivity {
     private static final String TAG = "activity_audio";
-//    private MediaPlayerService player;
+    //    private MediaPlayerService player;
 //    boolean serviceBound = false;
     String url = "http://cdn.mainhomepage.com/dailydozen/DailyDozen.mp3"; // your URL here
 
@@ -204,7 +204,7 @@ public class activity_audio extends AppCompatActivity {
             public void onClick(View v) {
                 Integer currentMediapositionFastForward=0;
                 currentMediapositionFastForward = mediaPlayer.getCurrentPosition() +  30000;
-                 mediaPlayer.seekTo(currentMediapositionFastForward);
+                mediaPlayer.seekTo(currentMediapositionFastForward);
                 seekBar.setProgress(currentMediapositionFastForward);
             }
         });
@@ -275,18 +275,25 @@ public class activity_audio extends AppCompatActivity {
         },0,1000);
         callStateListener();
         registerBecomingNoisyReceiver();
-        Intent playIntent = new Intent(this, activity_audio.class);
-        Intent pauseIntent = new Intent(this, activity_audio.class);
-        pauseIntent.setAction("pause");
-        pauseIntent.putExtra(EXTRA_NOTIFICATION_ID, 0);
 
-        playIntent.setAction("play");
-        playIntent.putExtra(EXTRA_NOTIFICATION_ID, 0);
 
-        Intent broadcastIntent = new Intent(this, MyBroadcastReceiver.class);
-        broadcastIntent.putExtra("action", "pause");
-        PendingIntent actionIntent = PendingIntent.getBroadcast(this,
-                0, broadcastIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        Intent broadcastIntentRewind = new Intent(this, MyBroadcastReceiver.class);
+        broadcastIntentRewind.putExtra("action", "rewind");
+        PendingIntent actionIntentRewind = PendingIntent.getBroadcast(this,
+                0, broadcastIntentRewind, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        Intent broadcastIntentPause = new Intent(this, MyBroadcastReceiver.class);
+        broadcastIntentPause.putExtra("action", "pause");
+        PendingIntent actionIntentPause = PendingIntent.getBroadcast(this,
+                1, broadcastIntentPause, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        Intent broadcastIntentForward = new Intent(this, MyBroadcastReceiver.class);
+        broadcastIntentForward.putExtra("action", "forward");
+        PendingIntent actionIntentForward = PendingIntent.getBroadcast(this,
+                2, broadcastIntentForward, PendingIntent.FLAG_UPDATE_CURRENT);
+
+
 
         Intent intent = new Intent(this, activity_audio.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -299,14 +306,17 @@ public class activity_audio extends AppCompatActivity {
                 .setSmallIcon(R.drawable.ic_library_music_black)
                 .setLargeIcon(BitmapFactory.decodeResource(this.getResources(),
                         R.drawable.chrisbrady))
-                .addAction(R.drawable.ic_pause_black_48dp, "pause", actionIntent)
+                .addAction(R.drawable.ic_replay_30_black_24dp, "Rewind", actionIntentRewind)
+                .addAction(R.drawable.ic_pause_black_48dp, "pause", actionIntentPause)
+                .addAction(R.drawable.ic_forward_30_black_24dp, "Forward", actionIntentForward)
+
                 .setContentTitle("Life Info")
                 .setContentText("Chris Brady")
                 .setStyle(new android.support.v4.media.app.NotificationCompat.MediaStyle()
-                .setShowActionsInCompactView(0))
+                        .setShowActionsInCompactView(0,1,2))
                 .setSubText("Sub text")
                 .setContentIntent(goToAppIntent)
-                .setPriority(NotificationCompat.PRIORITY_LOW);
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT);
         notificationManager = NotificationManagerCompat.from(this);
         Notification mNotification = null;
 
@@ -341,26 +351,38 @@ public class activity_audio extends AppCompatActivity {
         timer = new Timer();
         timer.cancel();
 
-        Intent playIntent = new Intent(this, activity_audio.class);
-        Intent pauseIntent = new Intent(this, activity_audio.class);
-//        playIntent.setAction(mediaPlayer.ca);
-        playIntent.putExtra(EXTRA_NOTIFICATION_ID, 0);
 
-        Intent broadcastIntent = new Intent(this, MyBroadcastReceiver.class);
-        broadcastIntent.putExtra("action2", "play");
-        PendingIntent actionIntent = PendingIntent.getBroadcast(this,
-                0, broadcastIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+
+        Intent broadcastIntentRewind = new Intent(this, MyBroadcastReceiver.class);
+        broadcastIntentRewind.putExtra("action", "rewind");
+        PendingIntent actionIntentRewind = PendingIntent.getBroadcast(this,
+                0, broadcastIntentRewind, PendingIntent.FLAG_UPDATE_CURRENT);
+
+
+        Intent broadcastIntentPlay = new Intent(this, MyBroadcastReceiver.class);
+        broadcastIntentPlay.putExtra("action", "play");
+        PendingIntent actionIntentPlay = PendingIntent.getBroadcast(this,
+                1, broadcastIntentPlay, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        Intent broadcastIntentForward = new Intent(this, MyBroadcastReceiver.class);
+        broadcastIntentForward.putExtra("action", "forward");
+        PendingIntent actionIntentForward = PendingIntent.getBroadcast(this,
+                2, broadcastIntentForward, PendingIntent.FLAG_UPDATE_CURRENT);
+
         NotificationCompat.Builder mBuilder2 = new NotificationCompat.Builder(this, "1")
                 .setSmallIcon(R.drawable.ic_library_music_black)
                 .setLargeIcon(BitmapFactory.decodeResource(this.getResources(),
                         R.drawable.chrisbrady))
-                .addAction(R.drawable.ic_play_arrow_black_48dp, "Play", actionIntent)
+                .addAction(R.drawable.ic_replay_30_black_24dp, "Rewind", actionIntentRewind)
+                .addAction(R.drawable.ic_play_arrow_black_48dp, "Play", actionIntentPlay)
+                .addAction(R.drawable.ic_forward_30_black_24dp, "Forward", actionIntentForward)
                 .setContentTitle("Life Info")
                 .setContentText("Chris Brady")
                 .setStyle(new android.support.v4.media.app.NotificationCompat.MediaStyle()
-                        .setShowActionsInCompactView(0))
+                        .setShowActionsInCompactView(0,1,2))
                 .setSubText("Sub text")
-                .setPriority(NotificationCompat.PRIORITY_LOW);
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT);
         notificationManager = NotificationManagerCompat.from(this);
         Notification mNotification = null;
 
@@ -470,12 +492,22 @@ public class activity_audio extends AppCompatActivity {
         playMedia();
     }
 
+    public void publicRewind() {
+        currentMediapositionRewind = mediaPlayer.getCurrentPosition()  - 30000;
+        mediaPlayer.seekTo(currentMediapositionRewind);
+        seekBar.setProgress(currentMediapositionRewind);
+        seekBar.getProgress();
+    }
+
+    public void publicForward() {
+        Integer currentMediapositionFastForward=0;
+        currentMediapositionFastForward = mediaPlayer.getCurrentPosition() +  30000;
+        mediaPlayer.seekTo(currentMediapositionFastForward);
+        seekBar.setProgress(currentMediapositionFastForward);
+    }
+
 
 
 
 
 }
-
-
-
-

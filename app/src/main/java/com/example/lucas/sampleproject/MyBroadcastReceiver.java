@@ -24,25 +24,22 @@ public class MyBroadcastReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
 
         String action = intent.getStringExtra("action");
-        String action2 = intent.getStringExtra("action2");
 
 if (action != null){
 
 
     if (action.equals("pause")){
         activity_audio.getAudioActivityInstance().publicPause();
+    }else if (action.equals("play")){
+        activity_audio.getAudioActivityInstance().publicPlay();
+    }else if (action.equals("rewind")){
+        activity_audio.getAudioActivityInstance().publicRewind();
+    }else if (action.equals("forward")){
+        activity_audio.getAudioActivityInstance().publicForward();
     }
 
+
 }
-
-        if (action2 != null){
-
-
-            if (action2.equals("play")){
-                activity_audio.getAudioActivityInstance().publicPlay();
-            }
-
-        }
 
 
     }
