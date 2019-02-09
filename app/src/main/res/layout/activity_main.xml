@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".MainActivity">
+
+
+
+        <Button
+            android:id="@+id/btnAnimations"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Animations" />
+
+        <Button
+            android:id="@+id/btnCoordinator"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Coordinator" />
+
+        <Button
+            android:id="@+id/btnAndroidCoordinator"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Android Coordinator" />
+
+        <Button
+            android:id="@+id/btnTransition"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Transition" />
+
+        <Button
+            android:id="@+id/btnScrollView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="ScrollView" />
+
+        <Button
+            android:id="@+id/btnSound"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Sound" />
+
+        <Button
+            android:id="@+id/btnAudio"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="AUDIOpLAYER" />
+
+</LinearLayout>
