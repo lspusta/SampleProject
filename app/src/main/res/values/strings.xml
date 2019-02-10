@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Testing Project</string>
+    <string name="app_name">Sample Project</string>
     <string name="title_activity_scrolling">ScrollingActivity</string>
 
     <string name="long_random_text">

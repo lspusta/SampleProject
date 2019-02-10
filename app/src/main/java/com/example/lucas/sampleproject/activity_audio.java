@@ -25,6 +25,7 @@ import android.os.PowerManager;
 import android.provider.MediaStore;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
+import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.telephony.PhoneStateListener;
@@ -50,52 +51,54 @@ import static android.app.Notification.EXTRA_NOTIFICATION_ID;
 
 public class activity_audio extends AppCompatActivity {
     private static final String TAG = "activity_audio";
-    //    private MediaPlayerService player;
-//    boolean serviceBound = false;
+    private static activity_audio instance;
+
+    public static final int PLAYBACK_POSITION_REFRESH_INTERVAL_MS = 1000;
+
+    private ScheduledExecutorService mExecutor;
+    private Runnable mSeekbarPositionUpdateTask;
+
+    private static final int NOTIFICATION_ID = 101;
+
+    private boolean ongoingCall = false;
+
+    private PhoneStateListener phoneStateListener;
+
+    private TelephonyManager telephonyManager;
+
+    private PlaybackInfoListener mPlaybackInfoListener;
+
+    private MediaSessionCompat mediaSessionCompat;
+
     String url = "http://cdn.mainhomepage.com/dailydozen/DailyDozen.mp3"; // your URL here
 
-    public static final String ACTION_PLAY = "com.example.lucas.sampleproject.ACTION_PLAY";
-    public static final String ACTION_PAUSE = "com.example.lucas.sampleproject.ACTION_PAUSE";
-    public static final String ACTION_PREVIOUS = "com.example.lucas.sampleproject.ACTION_PREVIOUS";
-    public static final String ACTION_NEXT = "com.example.lucas.sampleproject.ACTION_NEXT";
-    public static final String ACTION_STOP = "com.example.lucas.sampleproject.ACTION_STOP";
-
-    //MediaSession
-//    private MediaSessionManager mediaSessionManager;
-//    private MediaSessionCompat mediaSession;
-//    private MediaControllerCompat.TransportControls transportControls;
-
-    //AudioPlayer notification ID
-    private static final int NOTIFICATION_ID = 101;
     MediaPlayer mediaPlayer = new MediaPlayer();
+
     Button btnPlay;
+
     Button btnPause;
+
     Button btnForward;
+
     Button btnRewind;
+
+    Button btnClose;
+
     SeekBar seekBar;
-    private boolean ongoingCall = false;
-    private PhoneStateListener phoneStateListener;
-    private TelephonyManager telephonyManager;
-    Integer currentMediaposition=0;
+
     TextView txtTime;
     TextView txtEndTime;
     Timer mSecTimer;
-    private PlaybackInfoListener mPlaybackInfoListener;
-    public static final int PLAYBACK_POSITION_REFRESH_INTERVAL_MS = 1000;
-    private ScheduledExecutorService mExecutor;
-    private Runnable mSeekbarPositionUpdateTask;
     Timer timer;
-    private ArrayList<MediaStore.Audio> audioList;
-    private int audioIndex = -1;
-    private MediaStore.Audio activeAudio; //an object of the currently playing audio
-    public static final String Broadcast_PLAY_NEW_AUDIO = "com.example.lucas.sampleproject.PlayNewAudio";
-    boolean serviceBound = false;
+
+    Integer currentMediapositionRewind;
+    Integer currentMediaposition=0;
+
     NotificationCompat.Builder mBuilder;
     NotificationManagerCompat notificationManager;
-    Integer currentMediapositionRewind;
     NotificationCompat.Builder mBuilder2;
+
     BroadcastReceiver br = new MyBroadcastReceiver();
-    private static activity_audio instance;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -110,6 +113,7 @@ public class activity_audio extends AppCompatActivity {
         seekBar = findViewById(R.id.seekBar);
         txtTime = findViewById(R.id.txtTime);
         txtEndTime = findViewById(R.id.txtEndTime);
+        btnClose = findViewById(R.id.btnClose);
         btnPause.setVisibility(View.INVISIBLE);
         createNotificationChannel();
         mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
@@ -118,6 +122,12 @@ public class activity_audio extends AppCompatActivity {
         filter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
         this.registerReceiver(br, filter);
 
+        btnClose.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                notificationManager.cancel(1);
+            }
+        });
 
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -224,6 +234,41 @@ public class activity_audio extends AppCompatActivity {
 
     }
 
+    // All media
+    private void playMedia(){
+        mediaPlayer.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
+        mediaPlayer.start();
+        timer = new Timer();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                Log.d(TAG, "run: current postion" + mediaPlayer.getCurrentPosition());
+                updateTimerText();
+
+            }
+        },0,1000);
+        callStateListener();
+        registerBecomingNoisyReceiver();
+
+        mediaSessionCompat = new MediaSessionCompat(this, "tag");
+        showNotification("pause");
+
+        btnPause.setVisibility(View.VISIBLE);
+        btnPlay.setVisibility(View.INVISIBLE);
+    }
+
+    protected void pauseMedia(){
+        mediaPlayer.pause();
+        btnPause.setVisibility(View.INVISIBLE);
+        btnPlay.setVisibility(View.VISIBLE);
+        timer.cancel();
+
+        showNotification("play");
+
+    }
+
+
+
     public void updateTimerText(){
         runOnUiThread(new Runnable(){
             @Override
@@ -258,24 +303,14 @@ public class activity_audio extends AppCompatActivity {
     }
 
 
-
-
-
-    private void playMedia(){
-        mediaPlayer.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
-        mediaPlayer.start();
-        timer = new Timer();
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                Log.d(TAG, "run: current postion" + mediaPlayer.getCurrentPosition());
-                updateTimerText();
-
-            }
-        },0,1000);
-        callStateListener();
-        registerBecomingNoisyReceiver();
-
+    private void showNotification(String playORpause){
+        Integer icon = R.drawable.ic_pause_black_48dp;
+        if (playORpause.equals("play")){
+            //show play notification
+            icon = R.drawable.ic_play_arrow_black_48dp;
+        }else if (playORpause.equals("pause")) {
+            icon = R.drawable.ic_pause_black_48dp;
+        }
 
 
         Intent broadcastIntentRewind = new Intent(this, MyBroadcastReceiver.class);
@@ -283,16 +318,15 @@ public class activity_audio extends AppCompatActivity {
         PendingIntent actionIntentRewind = PendingIntent.getBroadcast(this,
                 0, broadcastIntentRewind, PendingIntent.FLAG_UPDATE_CURRENT);
 
-        Intent broadcastIntentPause = new Intent(this, MyBroadcastReceiver.class);
-        broadcastIntentPause.putExtra("action", "pause");
-        PendingIntent actionIntentPause = PendingIntent.getBroadcast(this,
-                1, broadcastIntentPause, PendingIntent.FLAG_UPDATE_CURRENT);
+        Intent broadcastIntentPlayPause = new Intent(this, MyBroadcastReceiver.class);
+        broadcastIntentPlayPause.putExtra("action", playORpause);
+        PendingIntent actionIntentPlayPause = PendingIntent.getBroadcast(this,
+                1, broadcastIntentPlayPause, PendingIntent.FLAG_UPDATE_CURRENT);
 
         Intent broadcastIntentForward = new Intent(this, MyBroadcastReceiver.class);
         broadcastIntentForward.putExtra("action", "forward");
         PendingIntent actionIntentForward = PendingIntent.getBroadcast(this,
                 2, broadcastIntentForward, PendingIntent.FLAG_UPDATE_CURRENT);
-
 
 
         Intent intent = new Intent(this, activity_audio.class);
@@ -307,25 +341,28 @@ public class activity_audio extends AppCompatActivity {
                 .setLargeIcon(BitmapFactory.decodeResource(this.getResources(),
                         R.drawable.chrisbrady))
                 .addAction(R.drawable.ic_replay_30_black_24dp, "Rewind", actionIntentRewind)
-                .addAction(R.drawable.ic_pause_black_48dp, "pause", actionIntentPause)
+                .addAction(icon, playORpause, actionIntentPlayPause)
                 .addAction(R.drawable.ic_forward_30_black_24dp, "Forward", actionIntentForward)
-
+                .setColor(333)
                 .setContentTitle("Life Info")
                 .setContentText("Chris Brady")
                 .setStyle(new android.support.v4.media.app.NotificationCompat.MediaStyle()
-                        .setShowActionsInCompactView(0,1,2))
-                .setSubText("Sub text")
+                        .setShowActionsInCompactView(0,1,2)
+                .setMediaSession(mediaSessionCompat.getSessionToken()))
+                .setSubText("audio")
                 .setContentIntent(goToAppIntent)
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+                .setPriority(NotificationCompat.PRIORITY_LOW);
         notificationManager = NotificationManagerCompat.from(this);
+        notificationManager.getImportance();
         Notification mNotification = null;
-
-// notificationId is a unique int for each notification that you must define
+        // notificationId is a unique int for each notification that you must define
+        mBuilder.setOngoing(true);
         notificationManager.notify(1, mBuilder.build());
         mBuilder.setPublicVersion(mNotification);
-//        mBuilder.setPublicVersion();
-        btnPause.setVisibility(View.VISIBLE);
-        btnPlay.setVisibility(View.INVISIBLE);
+
+
+
+
     }
 
     private void createNotificationChannel() {
@@ -334,7 +371,7 @@ public class activity_audio extends AppCompatActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             CharSequence name = "Life Audio";
             String description = "Life Audio Player";
-            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            int importance = NotificationManager.IMPORTANCE_LOW;
             NotificationChannel channel = new NotificationChannel("1", name, importance);
             channel.setDescription(description);
             // Register the channel with the system; you can't change the importance
@@ -344,52 +381,7 @@ public class activity_audio extends AppCompatActivity {
         }
     }
 
-    protected void pauseMedia(){
-        mediaPlayer.pause();
-        btnPause.setVisibility(View.INVISIBLE);
-        btnPlay.setVisibility(View.VISIBLE);
-        timer = new Timer();
-        timer.cancel();
-
-
-
-
-        Intent broadcastIntentRewind = new Intent(this, MyBroadcastReceiver.class);
-        broadcastIntentRewind.putExtra("action", "rewind");
-        PendingIntent actionIntentRewind = PendingIntent.getBroadcast(this,
-                0, broadcastIntentRewind, PendingIntent.FLAG_UPDATE_CURRENT);
-
-
-        Intent broadcastIntentPlay = new Intent(this, MyBroadcastReceiver.class);
-        broadcastIntentPlay.putExtra("action", "play");
-        PendingIntent actionIntentPlay = PendingIntent.getBroadcast(this,
-                1, broadcastIntentPlay, PendingIntent.FLAG_UPDATE_CURRENT);
-
-        Intent broadcastIntentForward = new Intent(this, MyBroadcastReceiver.class);
-        broadcastIntentForward.putExtra("action", "forward");
-        PendingIntent actionIntentForward = PendingIntent.getBroadcast(this,
-                2, broadcastIntentForward, PendingIntent.FLAG_UPDATE_CURRENT);
-
-        NotificationCompat.Builder mBuilder2 = new NotificationCompat.Builder(this, "1")
-                .setSmallIcon(R.drawable.ic_library_music_black)
-                .setLargeIcon(BitmapFactory.decodeResource(this.getResources(),
-                        R.drawable.chrisbrady))
-                .addAction(R.drawable.ic_replay_30_black_24dp, "Rewind", actionIntentRewind)
-                .addAction(R.drawable.ic_play_arrow_black_48dp, "Play", actionIntentPlay)
-                .addAction(R.drawable.ic_forward_30_black_24dp, "Forward", actionIntentForward)
-                .setContentTitle("Life Info")
-                .setContentText("Chris Brady")
-                .setStyle(new android.support.v4.media.app.NotificationCompat.MediaStyle()
-                        .setShowActionsInCompactView(0,1,2))
-                .setSubText("Sub text")
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT);
-        notificationManager = NotificationManagerCompat.from(this);
-        Notification mNotification = null;
-
-// notificationId is a unique int for each notification that you must define
-        notificationManager.notify(1, mBuilder2.build());
-        mBuilder2.setPublicVersion(mNotification);
-    }
+    //End of Media
 
 
     private void callStateListener() {
@@ -443,6 +435,8 @@ public class activity_audio extends AppCompatActivity {
         IntentFilter intentFilter = new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
         registerReceiver(becomingNoisyReceiver, intentFilter);
     }
+    // End of Headphone unplug
+
 
     private void startUpdatingCallbackWithPosition() {
         if (mExecutor == null) {
@@ -481,6 +475,10 @@ public class activity_audio extends AppCompatActivity {
 
     }
 
+
+    //Broadcast reciever for notification actions like
+    // play and pause forward and rewind
+
     public static activity_audio getAudioActivityInstance() {
         return instance;
     }
@@ -488,6 +486,7 @@ public class activity_audio extends AppCompatActivity {
     public void publicPause() {
         pauseMedia();
     }
+
     public void publicPlay() {
         playMedia();
     }
@@ -507,7 +506,7 @@ public class activity_audio extends AppCompatActivity {
     }
 
 
-
+    //End of Broadcast receiver
 
 
 }
