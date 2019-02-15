@@ -47,6 +47,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
+import android.support.v4.app.NotificationCompat.WearableExtender;
+
 import static android.app.Notification.EXTRA_NOTIFICATION_ID;
 
 public class activity_audio extends AppCompatActivity {
@@ -334,6 +338,8 @@ public class activity_audio extends AppCompatActivity {
         PendingIntent goToAppIntent =
                 PendingIntent.getActivity(this, 0, intent, 0);
 
+
+
         Bitmap myBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_library_music_black);
 
         mBuilder = new NotificationCompat.Builder(this, "1")
@@ -359,6 +365,21 @@ public class activity_audio extends AppCompatActivity {
         mBuilder.setOngoing(true);
         notificationManager.notify(1, mBuilder.build());
         mBuilder.setPublicVersion(mNotification);
+
+
+//        int notificationId = 001;
+//// The channel ID of the notification.
+//        String id = "my_channel_01";
+//// Build intent for notification content
+//
+//// Notification channel ID is ignored for Android 7.1.1
+//// (API level 25) and lower.
+//        NotificationCompat.Builder notificationBuilder =
+//                new NotificationCompat.Builder(this, id)
+//                        .setSmallIcon(R.drawable.ic_library_music_black)
+//                        .setContentTitle(eventTitle)
+//                        .setContentText(eventLocation)
+//                        .setContentIntent(viewPendingIntent);
 
 
 
